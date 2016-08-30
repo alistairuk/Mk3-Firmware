@@ -4,6 +4,7 @@
 
 import network
 import wifi
+import ujson
 
 from http_client import post
 
@@ -21,21 +22,16 @@ def geolocate():
 	apList = wifi.nic().list_aps()
 
 	# Create the json string
-	geojson = "{"
-	firsttime=True
+	wifiobj = {}
 	for i in apList:
-		# write a seperator if not the first entry
-		if (not firsttime):
-			geojson += ","
-		else:
-			firsttime=False
 		# get the bssid
 		bssid = ''
 		for b in i['bssid']:
 			bssid += "%02x" % (b);
-		# Write the signal to the cache file
-		geojson += "\""+bssid+"\":"+str(-i['rssi'])
-	geojson += "}"
+		# Add the thtry to the list
+		wifiobj.update({bssid:-i['rssi']})
+	# Convert the list ot json
+	wifijson = ujson.dumps(wifiobj)
 
 	# Check we are connected to the wifi and (re)connect if needed
 	if not wifi.is_connected():
@@ -43,7 +39,8 @@ def geolocate():
 
 	# Post the json request
 	url = "http://tilda.agm.me.uk/geolocate"
-	response = post(url, urlencoded=("data="+geojson)).raise_for_status().json()
+	response = post(url, urlencoded=("data="+wifijson)).raise_for_status().json()
 
 	# Return the result
 	return response
+
